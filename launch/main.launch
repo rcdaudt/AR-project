@@ -1,0 +1,21 @@
+<launch>
+    <arg name="rviz" value="true"/>
+    <arg name="gazebo" value="true"/>
+
+    <!-- launch Gazebo -->
+    <group if="$(arg gazebo)">
+        <include file="$(find ar_project)/launch/gazebo.launch"/>
+    </group>
+
+    <!-- launch RViz -->
+    <group if="$(arg rviz)">
+        <include file="$(find ar_project)/launch/rviz.launch"/>
+    </group>
+
+    <!-- include external modules here -->
+    <!-- e.g. Split & merge -->
+    <!-- e.g. <include file="$(find lab2_splitandmerge)/launch/splitandmerge.launch"/>-->
+    
+    <!-- Main node-->
+    <node pkg="ar_project" type="main.py" name="main" output="screen"/>
+</launch>
