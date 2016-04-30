@@ -1,6 +1,7 @@
 <launch>
     <arg name="rviz" value="true"/>
     <arg name="gazebo" value="true"/>
+    <arg name="map_file" value="$(find ar_project)/maps/map.yaml"/>
 
     <!-- launch Gazebo -->
     <group if="$(arg gazebo)">
@@ -16,6 +17,13 @@
     <!-- e.g. Split & merge -->
     <!-- e.g. <include file="$(find lab2_splitandmerge)/launch/splitandmerge.launch"/>-->
     
+
+
+    <!-- Load map -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find ar_project)/maps/map.yaml" output="screen"/>
+
+
     <!-- Main node-->
     <node pkg="ar_project" type="main.py" name="main" output="screen"/>
+
 </launch>

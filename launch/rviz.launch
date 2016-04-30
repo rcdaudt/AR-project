@@ -2,5 +2,4 @@
 
     <!-- RViz -->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ar_project)/config/custom.rviz" output="screen"/>
-
 </launch>
