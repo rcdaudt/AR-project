@@ -34,8 +34,8 @@ class ControllerNode(object):
         """Initialize publishers, subscribers and the classes."""
 
         # Init publishers
-        # self.loadMap = rospy.Subscriber("map", OccupancyGrid, self.showMap)
-        # self.pubMap = rospy.Publisher("map1", OccupancyGrid, queue_size=2)
+        self.loadMap = rospy.Subscriber("map", OccupancyGrid, self.showMap)
+        self.pubMap = rospy.Publisher("map1", OccupancyGrid, queue_size=2)
         # Init subscribers
         # e.g. self.sensor = rospy.Subscriber("sensor", dataType, self.callbackFunctionForSensorNode)
 
@@ -45,15 +45,15 @@ class ControllerNode(object):
 
     # ==========================================================================
     # define callback functions in this block
-    # def showMap(self, msg):
-    #     print 'CONTROLLER NODE: RECEIVED A MAP', msg
-    #     self.pubMap.publish(msg)
+    def showMap(self, msg):
+        self.pubMap.publish(msg)
     # ==========================================================================
     def iterate(self):
         """Main loop"""
 
     # ==========================================================================
     def publish_results(self):
+
         """Publish results (if needed) to rviz"""
 
 if __name__ == '__main__':

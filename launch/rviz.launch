@@ -1,5 +1,5 @@
 <launch>
-
     <!-- RViz -->
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ar_project)/config/custom.rviz" output="screen"/>
+    <!--<node pkg="rviz" type="rviz" name="rviz" args="-d $(find ar_project)/config/navigation.rviz" output="screen"/>-->
+    <node pkg="rviz" type="rviz" name="rviz" output="screen"/>
 </launch>
