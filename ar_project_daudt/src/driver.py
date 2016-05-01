@@ -69,10 +69,10 @@ class driver(object):
         self.position_theta = 0
 
         #Controller parameters
-        self.kp_v = 0.5
+        self.kp_v = 0.3
         self.kp_w = 0.3
-        self.kd_v = 0.3
-        self.kd_w = 0.3
+        self.kd_v = 0.1
+        self.kd_w = 0.1
         # self.ki_w = 0.001
 
         #Controller variables
@@ -293,8 +293,8 @@ class driver(object):
             # self.dt_acc += dt
 
             # Calculate control signals
-            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**4)
-            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
+            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**256)
+            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.3])
             angv = self.kp_w*dt + self.kd_w*dt_deriv # + self.ki_w*self.dt_acc
             self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
 
