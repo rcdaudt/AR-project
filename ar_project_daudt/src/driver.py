@@ -10,10 +10,10 @@ import rospy
 # Other imoprts
 import math #math library
 import numpy as np #numpy library
-from probabilistic_lib.functions import angle_wrap #Normalize angles between -pi and pi
+# from probabilistic_lib.functions import angle_wrap #Normalize angles between -pi and pi
 
 #TODO import the library to read csv
-import csv
+# import csv
 
 from rrt import rrt
 from scipy.ndimage import imread
@@ -63,15 +63,22 @@ class driver(object):
         #TODO define the velocity message
         self.vmsg = Twist()
 
+        # Initialize robot's position
+        self.position_x = 0
+        self.position_y = 0
+        self.position_theta = 0
+
         #Controller parameters
-        self.kp_v = 0.3
+        self.kp_v = 0.5
         self.kp_w = 0.3
-        self.kd_v = 0.5
-        self.kd_w = 0.5
+        self.kd_v = 0.3
+        self.kd_w = 0.3
+        # self.ki_w = 0.001
 
         #Controller variables
         self.d_prev = 0
         self.dt_prev = 0
+        # self.dt_acc = 0
 
         #Has the goal been loaded?
         self.params_loaded = False
@@ -119,7 +126,7 @@ class driver(object):
         dist_to_goal_ang computes the orientation distance to the active
         goal
         '''
-        return np.abs(angle_wrap(self.theta[self.active_goal]-self.position_theta))
+        return np.abs(self.angle_wrap(self.theta[self.active_goal]-self.position_theta))
         
     def has_arrived_xy(self):
         '''
@@ -193,7 +200,7 @@ class driver(object):
         grid_map = grid_map[:,:,0]
         # q_start = [70,80]
         # q_goal = [615,707]
-        q_start = [40,40]
+        q_start = [10,10]
         q_goal = [220,320]
         k = 10000
         delta_q = 20
@@ -212,13 +219,17 @@ class driver(object):
             y1 = self.y[i]
             x2 = self.x[i+1]
             y2 = self.y[i+1]
-            self.theta[i] = angle_wrap(np.arctan2(y2-y1,x2-x1))
+            self.theta[i] = self.angle_wrap(np.arctan2(y2-y1,x2-x1))
         self.theta[n-1] = self.theta[n-2]
 
+        theta_0 = self.angle_wrap(np.arctan2(self.x[0]-self.position_x,self.y[0]-self.position_y))
+        self.x = np.hstack((self.position_x,self.x))
+        self.y = np.hstack((self.position_y,self.y))
+        self.theta = np.hstack((theta_0,self.theta))
 
 
 
-        self.num_goals = n
+        self.num_goals = self.x.size
         self.params_loaded = True
         self.print_goals()
         
@@ -270,7 +281,7 @@ class driver(object):
 
         if d > self.goal_th_xy/2: # Using threshold/2 to avoid entering and leaving goal radius
             theta_target = np.arctan2(dy,dx) # angle to target
-            dt = angle_wrap(theta_target - self.position_theta) # angle difference
+            dt = self.angle_wrap(theta_target - self.position_theta) # angle difference
 
             # For derivative controller
             d_deriv = d - self.d_prev
@@ -278,17 +289,20 @@ class driver(object):
             dt_deriv = dt - self.dt_prev
             self.dt_prev = dt
 
+            # For integral controller
+            # self.dt_acc += dt
+
             # Calculate control signals
             linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**4)
             self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
-            angv = self.kp_w*dt + self.kd_w*dt_deriv
-            self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv))*d)
+            angv = self.kp_w*dt + self.kd_w*dt_deriv # + self.ki_w*self.dt_acc
+            self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
 
             # print(str([self.position_theta,theta_target,dx,dy]))
             # print(str([linv,angv]))
 
         elif not self.has_arrived_ang():
-            dt = angle_wrap(self.theta[self.active_goal] - self.position_theta) # angle difference
+            dt = self.angle_wrap(self.theta[self.active_goal] - self.position_theta) # angle difference
 
             # For derivative controller
             dt_deriv = dt - self.dt_prev
@@ -298,3 +312,22 @@ class driver(object):
             self.vmsg.linear.x = 0
             angv = self.kp_w*dt + self.kd_w*dt_deriv
             self.vmsg.angular.z = angv/np.sqrt(np.abs(angv))
+
+
+    def angle_wrap(self,ang):
+        """
+        Return the angle normalized between [-pi, pi].
+
+        Works with numbers and numpy arrays.
+
+        :param ang: the input angle/s.
+        :type ang: float, numpy.ndarray
+        :returns: angle normalized between [-pi, pi].
+        :rtype: float, numpy.ndarray
+        """
+        ang = ang % (2 * np.pi)
+        if (isinstance(ang, int) or isinstance(ang, float)) and (ang > np.pi):
+            ang -= 2 * np.pi
+        elif isinstance(ang, np.ndarray):
+            ang[ang > np.pi] -= 2 * np.pi
+        return ang
