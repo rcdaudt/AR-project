@@ -35,7 +35,15 @@ class ControllerNode(object):
 
         # Init publishers
         self.loadMap = rospy.Subscriber("map", OccupancyGrid, self.showMap)
-        self.pubMap = rospy.Publisher("map1", OccupancyGrid, queue_size=2)
+        self.publishMap = rospy.Publisher("mapWorld", OccupancyGrid, queue_size=2)
+        
+        # Map
+        self.loadedMap = None
+        
+        # Flags
+        self.new_odom = False
+        self.mapReceived = False
+
         # Init subscribers
         # e.g. self.sensor = rospy.Subscriber("sensor", dataType, self.callbackFunctionForSensorNode)
 
@@ -46,11 +54,17 @@ class ControllerNode(object):
     # ==========================================================================
     # define callback functions in this block
     def showMap(self, msg):
-        self.pubMap.publish(msg)
+        msg.header.frame_id = 'map'
+        self.loadedMap = msg
+        self.mapReceived = True;
+        #funcs.publish_lines(self.ekf.map, self.pub_lines, frame='world',
+         #                   ns='map', color=(0, 1, 0))
+
     # ==========================================================================
     def iterate(self):
         """Main loop"""
-
+        if self.mapReceived:
+            self.publishMap.publish(self.loadedMap)
     # ==========================================================================
     def publish_results(self):
 
