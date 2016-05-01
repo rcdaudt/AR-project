@@ -46,7 +46,7 @@ class driver(object):
         
         #Threshold for distance to goal
         self.goal_th_xy = rospy.get_param('goal_thershold_xy',0.1) #Position threshold
-        self.goal_th_ang = rospy.get_param('goal_threshold_ang',0.01) #Orientation threshold
+        self.goal_th_ang = rospy.get_param('goal_threshold_ang',0.001) #Orientation threshold
         
         #Point to the first goal
         self.active_goal = 0
@@ -58,27 +58,28 @@ class driver(object):
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
         
         #TODO define publisher        
-        self.pub = rospy.Publisher("/cmd_vel_mux/input/navi", Twist, queue_size=100)
+        self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
         
         #TODO define the velocity message
         self.vmsg = Twist()
 
-        # Initialize robot's position
-        self.position_x = 0
-        self.position_y = 0
-        self.position_theta = 0
+        # # Initialize robot's position
+        # self.position_x = 0
+        # self.position_y = 0
+        # self.position_theta = 0
 
         #Controller parameters
-        self.kp_v = 0.3
-        self.kp_w = 0.3
-        self.kd_v = 0.1
-        self.kd_w = 0.1
+        self.kp_v = 0.1
+        self.kp_w = 1.5
+        self.kd_v = 0
+        self.kd_w = 0
         # self.ki_w = 0.001
 
         #Controller variables
         self.d_prev = 0
         self.dt_prev = 0
         # self.dt_acc = 0
+        # self.lp = np.zeros(100)
 
         #Has the goal been loaded?
         self.params_loaded = False
@@ -200,19 +201,19 @@ class driver(object):
         grid_map = grid_map[:,:,0]
         # q_start = [70,80]
         # q_goal = [615,707]
-        q_start = [10,10]
-        q_goal = [220,320]
+        q_start = [200,200]
+        q_goal = [200,350]
         k = 10000
-        delta_q = 20
+        delta_q = 10
         p = 0.3
 
         path = rrt(grid_map,q_start,q_goal,k,delta_q,p)
 
-        scale = 0.025
+        scale = 0.05
         n = path.shape[0]
 
-        self.x = path[:,0]*scale
-        self.y = path[:,1]*scale
+        self.x = (path[:,1]-q_start[1])*scale
+        self.y = (path[:,0]-q_start[0])*scale
         self.theta = 0*self.x
         for i in np.arange(0,n-1):
             x1 = self.x[i]
@@ -222,10 +223,10 @@ class driver(object):
             self.theta[i] = self.angle_wrap(np.arctan2(y2-y1,x2-x1))
         self.theta[n-1] = self.theta[n-2]
 
-        theta_0 = self.angle_wrap(np.arctan2(self.x[0]-self.position_x,self.y[0]-self.position_y))
-        self.x = np.hstack((self.position_x,self.x))
-        self.y = np.hstack((self.position_y,self.y))
-        self.theta = np.hstack((theta_0,self.theta))
+        # theta_0 = self.angle_wrap(np.arctan2(self.x[0]-self.position_x,self.y[0]-self.position_y))
+        # self.x = np.hstack((self.position_x,self.x))
+        # self.y = np.hstack((self.position_y,self.y))
+        # self.theta = np.hstack((theta_0,self.theta))
 
 
 
@@ -293,9 +294,11 @@ class driver(object):
             # self.dt_acc += dt
 
             # Calculate control signals
-            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**256)
-            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.3])
-            angv = self.kp_w*dt + self.kd_w*dt_deriv # + self.ki_w*self.dt_acc
+            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32)
+            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
+            # self.vmsg.linear.y = self.vmsg.linear.x
+            # self.vmsg.linear.z = self.vmsg.linear.x
+            angv = self.kp_w*dt + self.kd_w*dt_deriv
             self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
 
             # print(str([self.position_theta,theta_target,dx,dy]))
@@ -312,6 +315,8 @@ class driver(object):
             self.vmsg.linear.x = 0
             angv = self.kp_w*dt + self.kd_w*dt_deriv
             self.vmsg.angular.z = angv/np.sqrt(np.abs(angv))
+
+        # print(str([self.vmsg.linear.x,self.vmsg.angular.z]))
 
 
     def angle_wrap(self,ang):

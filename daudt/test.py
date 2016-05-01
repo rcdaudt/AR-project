@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 
 #=============================================================================
 # function inputs
-map1 = np.array(imread('simpleMap.png'))
+map1 = np.array(imread('test-1m-20px.png'))
 map1 = map1[:,:,0]
-q_start = [40,40]
-q_goal = [220,320]
+q_start = [200,200]
+q_goal = [200,300]
 k = 10000
 delta_q = 20
 p = 0.3
