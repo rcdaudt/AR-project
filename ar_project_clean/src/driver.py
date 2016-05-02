@@ -69,9 +69,9 @@ class driver(object):
         self.vmsg = Twist()
 
         # Initialize robot's position (in meters)
-        self.position_x = 0
-        self.position_y = 0
-        self.position_theta = 0
+        self.position_x = rospy.get_param('cur_pos_world_x', 0)
+        self.position_y = rospy.get_param('cur_pos_world_y', 0)
+        self.position_theta = rospy.get_param('cur_pos_world_theta', 0)
 
         #Controller parameters
         self.kp_v = 0.1
@@ -204,6 +204,8 @@ class driver(object):
 
         
         scale = 0.05
+        offset_x = 200
+        offset_y = 200
         
         grid_map = np.array(imread(filepath))
         grid_map = grid_map[:,:,0]
@@ -225,8 +227,10 @@ class driver(object):
         print path
         n = path.shape[0]
 
-        self.x = (path[:,1]-q_start[1])*scale
-        self.y = (path[:,0]-q_start[0])*scale
+        # self.x = (path[:,1]-q_start[1])*scale
+        # self.y = (path[:,0]-q_start[0])*scale
+        self.x = (path[:,1]-offset_y)*scale
+        self.y = (path[:,0]-offset_x)*scale
         self.theta = 0*self.x
         for i in np.arange(0,n-1):
             x1 = self.x[i]
@@ -245,6 +249,7 @@ class driver(object):
 
         self.num_goals = self.x.size
         self.params_loaded = True
+        self.active_goal = 1
         self.print_goals()
         
     def next_goal(self):
@@ -261,6 +266,9 @@ class driver(object):
             rospy.set_param('cur_pos_x', rospy.get_param('x', self.x_start))
             rospy.set_param('cur_pos_y', rospy.get_param('y', self.y_start))
             rospy.set_param('cur_pos_theta', rospy.get_param('theta', self.theta_start))
+            rospy.set_param('cur_pos_world_x', self.position_x)
+            rospy.set_param('cur_pos_world_y', self.position_y)
+            rospy.set_param('cur_pos_world_theta', self.position_theta)
             rospy.signal_shutdown('Final goal reached!')
             self.active_goal = self.active_goal - 1 # Just in case
         self.print_goal()
