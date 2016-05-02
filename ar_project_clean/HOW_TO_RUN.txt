@@ -1,0 +1,9 @@
+$ roslaunch ar_project_clean gazebo.launch
+$ roslaunch ar_project_clean driver.launch x:=200 y:=350
+
+# coordinates are given in image pixels
+# when the robot reaches the goal,
+# you can run the command above again with different coordinates
+# (need to fix, not working)
+
+$ roslaunch ar_project_clean driver.launch x:=200 y:=200

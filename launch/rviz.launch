@@ -1,5 +1,0 @@
-<launch>
-    <!-- RViz -->
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ar_project)/config/robot.rviz" output="screen"/>
-    <!--<node pkg="rviz" type="rviz" name="rviz" output="screen"/>-->
-</launch>
