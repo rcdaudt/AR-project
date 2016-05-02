@@ -17,6 +17,7 @@ import numpy as np #numpy library
 
 from rrt import rrt
 from scipy.ndimage import imread
+from splitandmerge import splitandmerge
 
 #TODO import the library to compute transformations
 from tf.transformations import euler_from_quaternion
@@ -25,6 +26,8 @@ from tf.transformations import euler_from_quaternion
 #TODO import appropiate ROS messages
 from geometry_msgs.msg import Twist # For
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
+
 
 class driver(object):
     
@@ -58,10 +61,14 @@ class driver(object):
 
         #Initialize number of goals
         self.num_goals = 1
+
+        #Some parameters for LaserScan information
+        self.sensor_spacing = 5 
+        self.sensor_max_range = 4 
         
         #TODO define subscriber
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
-        
+        self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.callback2)
         #TODO define publisher        
         self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
         
@@ -179,6 +186,35 @@ class driver(object):
         self.compute_velocity()
         self.publish()
         self.check_goal()
+
+    def callback2(self, msg):
+
+        s = self.sensor_spacing
+
+        # Range
+        rng = np.array(msg.ranges)
+        rng = rng[0:len(msg.ranges):s]
+
+        # Angle
+        ang = np.linspace(msg.angle_min, msg.angle_max, len(msg.ranges))
+        ang = ang[0:len(msg.ranges):s]
+
+        # Point features
+        points = np.vstack((rng * np.cos(ang),
+                            rng * np.sin(ang)))
+
+        # Set Maximum sensing range
+        msg.range_max = self.sensor_max_range
+
+        # Acquire points within the maximum range
+        points = points[:, rng < msg.range_max]
+        
+        
+        # Split & Merge aLgorithm to get the line features
+        lines = splitandmerge(points)
+        # print lines.shape
+        # publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
+        #              time=msg.header.stamp, ns='scan_line', color=(1,0,0),marker_id=1)
         
     def drive(self):
         '''
