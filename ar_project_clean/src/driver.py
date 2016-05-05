@@ -18,16 +18,18 @@ import numpy as np #numpy library
 from rrt import rrt
 from scipy.ndimage import imread
 from splitandmerge import splitandmerge
+from probabilistic_lib.functions import publish_lines
 
 #TODO import the library to compute transformations
 from tf.transformations import euler_from_quaternion
+import tf
 
 #ROS messages
 #TODO import appropiate ROS messages
 from geometry_msgs.msg import Twist # For
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
-
+from visualization_msgs.msg import Marker
 
 class driver(object):
     
@@ -64,14 +66,17 @@ class driver(object):
 
         #Some parameters for LaserScan information
         self.sensor_spacing = 5 
-        self.sensor_max_range = 4 
+        self.sensor_max_range = 10
         
+        #TODO define publisher        
+        self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
+        self.pub_line = rospy.Publisher("lines", Marker,queue_size=0)     
+
         #TODO define subscriber
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
         self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.callback2)
-        #TODO define publisher        
-        self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
-        
+        self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
+
         #TODO define the velocity message
         self.vmsg = Twist()
 
@@ -95,7 +100,11 @@ class driver(object):
 
         #Has the goal been loaded?
         self.params_loaded = False
-        # self.load_goals() 
+
+        # For rviz plotting lines
+        self.tfBroad = tf.TransformBroadcaster()
+        self.i = 0 
+        
 
     def print_goals(self):
         '''
@@ -212,10 +221,42 @@ class driver(object):
         
         # Split & Merge aLgorithm to get the line features
         lines = splitandmerge(points)
-        # print lines.shape
-        # publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
-        #              time=msg.header.stamp, ns='scan_line', color=(1,0,0),marker_id=1)
+
+        #print lines
+
+        self.i = self.i + 1
+        nss = 'scan_line' + str(self.i)
+        publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
+                     time=msg.header.stamp, ns=nss, color=(1,0,0),marker_id=1)
         
+    def odom_callback(self, msg):
+        '''
+        Publishes a tf based on the odometry of the robot.
+        '''
+        # Translation
+        trans = (msg.pose.pose.position.x, 
+                 msg.pose.pose.position.y, 
+                 msg.pose.pose.position.z)
+        
+        # Rotation
+        rot = (msg.pose.pose.orientation.x,
+               msg.pose.pose.orientation.y,
+               msg.pose.pose.orientation.z,
+               msg.pose.pose.orientation.w)
+        
+        # Publish transform
+        self.tfBroad.sendTransform(translation = trans,
+                                   rotation = rot, 
+                                   time = msg.header.stamp,
+                                   parent = '/world',
+                                   child = '/base_footprint')
+
+        self.tfBroad.sendTransform(translation = (0,0,0),
+                                   rotation = tf.transformations.quaternion_from_euler(0,0,0
+                                    ), 
+                                   time = msg.header.stamp,
+                                   child = '/odom',
+                                   parent = '/world')
     def drive(self):
         '''
         drive is a neede function for the ros to run untill somebody stops
