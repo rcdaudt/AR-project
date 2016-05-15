@@ -59,6 +59,10 @@ class driver(object):
         #Initialize number of goals
         self.num_goals = 1
         
+
+        #Has the goal been loaded?
+        self.params_loaded = False
+
         #TODO define subscriber
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
         
@@ -86,8 +90,6 @@ class driver(object):
         # self.dt_acc = 0
         # self.lp = np.zeros(100)
 
-        #Has the goal been loaded?
-        self.params_loaded = False
         # self.load_goals() 
 
     def print_goals(self):
@@ -222,9 +224,12 @@ class driver(object):
         delta_q = 10
         p = 0.3
 
+        #if grid_map[q_goal[0], q_goal[1]] == 0:
         path = rrt(grid_map,q_start,q_goal,k,delta_q,p)
+        #else:
+        #    path = np.ndarray([self.x_start, self.y_start])
 
-        print path
+        print 'Path: ',path
         n = path.shape[0]
 
         # self.x = (path[:,1]-q_start[1])*scale
