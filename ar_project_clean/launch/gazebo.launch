@@ -5,4 +5,8 @@
 	<include file="$(find turtlebot_gazebo)/launch/turtlebot_world.launch">
 	  <arg name="world_file" value="$(arg world)"/>
 	</include>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ar_project_clean)/config/MyConfig.rviz" output="screen"/>
+
 </launch>

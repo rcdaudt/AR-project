@@ -17,14 +17,20 @@ import numpy as np #numpy library
 
 from rrt import rrt
 from scipy.ndimage import imread
+from splitandmerge import splitandmerge
+from probabilistic_lib.functions import publish_lines
+import utils
 
 #TODO import the library to compute transformations
 from tf.transformations import euler_from_quaternion
+import tf
 
 #ROS messages
 #TODO import appropiate ROS messages
 from geometry_msgs.msg import Twist # For
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
+from visualization_msgs.msg import Marker
 
 class driver(object):
     
@@ -58,17 +64,31 @@ class driver(object):
 
         #Initialize number of goals
         self.num_goals = 1
-        
 
         #Has the goal been loaded?
         self.params_loaded = False
 
+        # For rviz plotting lines
+        self.tfBroad = tf.TransformBroadcaster()
+        self.i = 0 
+
         #TODO define subscriber
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
+
+        #Some parameters for LaserScan information
+        self.sensor_spacing = 5 
+        self.sensor_max_range = 10
         
         #TODO define publisher        
         self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
-        
+        self.pub_line = rospy.Publisher("lines", Marker,queue_size=0)     
+        self.pub_map = rospy.Publisher("linesekf", Marker, queue_size=2)
+
+        #TODO define subscriber
+        self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
+        self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.callback2)
+        self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
+
         #TODO define the velocity message
         self.vmsg = Twist()
 
@@ -90,8 +110,10 @@ class driver(object):
         # self.dt_acc = 0
         # self.lp = np.zeros(100)
 
-        # self.load_goals() 
+        # Publish map lines
+        self.map = utils.get_map()
 
+        
     def print_goals(self):
         '''
         print_goals prints the list of goals
@@ -181,7 +203,68 @@ class driver(object):
         self.compute_velocity()
         self.publish()
         self.check_goal()
+
+    def callback2(self, msg):
+
+        s = self.sensor_spacing
+
+        # Range
+        rng = np.array(msg.ranges)
+        rng = rng[0:len(msg.ranges):s]
+
+        # Angle
+        ang = np.linspace(msg.angle_min, msg.angle_max, len(msg.ranges))
+        ang = ang[0:len(msg.ranges):s]
+
+        # Point features
+        points = np.vstack((rng * np.cos(ang),
+                            rng * np.sin(ang)))
+
+        # Set Maximum sensing range
+        msg.range_max = self.sensor_max_range
+
+        # Acquire points within the maximum range
+        points = points[:, rng < msg.range_max]
         
+        
+        # Split & Merge aLgorithm to get the line features
+        lines = splitandmerge(points)
+
+        #print lines
+
+        self.i = self.i + 1
+        nss = 'scan_line' + str(self.i)
+        publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
+                     time=msg.header.stamp, ns=nss, color=(1,0,0),marker_id=1)
+        
+    def odom_callback(self, msg):
+        '''
+        Publishes a tf based on the odometry of the robot.
+        '''
+        # Translation
+        trans = (msg.pose.pose.position.x, 
+                 msg.pose.pose.position.y, 
+                 msg.pose.pose.position.z)
+        
+        # Rotation
+        rot = (msg.pose.pose.orientation.x,
+               msg.pose.pose.orientation.y,
+               msg.pose.pose.orientation.z,
+               msg.pose.pose.orientation.w)
+        
+        # Publish transform
+        self.tfBroad.sendTransform(translation = trans,
+                                   rotation = rot, 
+                                   time = msg.header.stamp,
+                                   parent = '/world',
+                                   child = '/base_footprint')
+
+        self.tfBroad.sendTransform(translation = (0,0,0),
+                                   rotation = tf.transformations.quaternion_from_euler(0,0,0
+                                    ), 
+                                   time = msg.header.stamp,
+                                   child = '/odom',
+                                   parent = '/world')
     def drive(self):
         '''
         drive is a neede function for the ros to run untill somebody stops
@@ -189,6 +272,8 @@ class driver(object):
         '''
         self.print_goal()
         while not rospy.is_shutdown():
+            utils.publish_lines(self.map, self.pub_map, frame='world',
+                            ns='map', color=(0, 1, 0))
             rospy.sleep(0.03)
         
     def load_goals(self):
