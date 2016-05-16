@@ -78,7 +78,7 @@ class driver(object):
         self.i = 0 
 
         #TODO define subscriber
-        self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
+        #self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
 
         #Some parameters for LaserScan information
         self.sensor_spacing = 5 
@@ -93,7 +93,7 @@ class driver(object):
         #TODO define subscriber
         ##################################################################
         # FIX THIS - TWO SUBSCRIBERS TO ODOM?
-        self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
+        #self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
         self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
         self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
 
@@ -204,17 +204,11 @@ class driver(object):
         '''
         self.pub.publish(self.vmsg)
         
-    def callback(self,msg):
+    #def callback(self,msg):
         '''
         callback reads the actuall position of the robot, computes the 
         appropiate velocity, publishes it and check if the goal is reached
         '''
-        if self.params_loaded == False:
-            return
-        self.read_position(msg)
-        self.compute_velocity()
-        self.publish()
-        self.check_goal()
 
     def scan_callback(self, msg):
 
@@ -369,6 +363,15 @@ class driver(object):
         Publishes a tf based on the odometry of the robot.
         '''
         # Translation
+
+        if self.params_loaded == False:
+            return
+        self.read_position(msg)
+        self.compute_velocity()
+        self.publish()
+        self.check_goal()
+
+
         trans = (msg.pose.pose.position.x, 
                  msg.pose.pose.position.y, 
                  msg.pose.pose.position.z)

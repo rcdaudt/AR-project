@@ -6,7 +6,7 @@
 
 
 import numpy as np
-from probabilistic_lib.functions import angle_wrap
+import utils
 import math
 
 #===============================================================================
@@ -123,7 +123,7 @@ def merge(lines, dist_thres, ang_thres):
         ang2 = math.atan2(lines[i+1,3] - lines[i+1,1], lines[i+1,2] - lines[i+1,0])  
         
         # Below thresholds?
-        angdiff = abs(angle_wrap(ang1-ang2))
+        angdiff = abs(utils.angle_wrap(ang1-ang2))
         disdiff = math.sqrt(math.pow(lines[i,2]-lines[i+1,0],2) + math.pow(lines[i,3]-lines[i+1,1],2))
         if angdiff < ang_thres and disdiff < dist_thres:
             
