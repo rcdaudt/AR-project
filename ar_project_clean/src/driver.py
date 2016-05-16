@@ -18,7 +18,6 @@ import numpy as np #numpy library
 from rrt import rrt
 from scipy.ndimage import imread
 from splitandmerge import splitandmerge
-from probabilistic_lib.functions import publish_lines
 import utils
 
 #TODO import the library to compute transformations
@@ -77,23 +76,21 @@ class driver(object):
         self.tfBroad = tf.TransformBroadcaster()
         self.i = 0 
 
-        #TODO define subscriber
-        #self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
+       
 
         #Some parameters for LaserScan information
         self.sensor_spacing = 5 
         self.sensor_max_range = 10
         
-        #TODO define publisher        
+        # Define publisher        
         self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
         self.pub_line = rospy.Publisher("lines", Marker,queue_size=0)     
         self.pub_map = rospy.Publisher("linesekf", Marker, queue_size=2)
         self.pub_traj = rospy.Publisher("trajectory", Marker, queue_size=2)
 
-        #TODO define subscriber
+        # Define subscriber
         ##################################################################
-        # FIX THIS - TWO SUBSCRIBERS TO ODOM?
-        #self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
+        
         self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
         self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
 
@@ -117,9 +114,9 @@ class driver(object):
         self.dt_prev = 0
         
         # Obstacle avoidance factors
-        self.oa_v = 0
+        self.oa_v = 1
         self.oa_w = 0
-        self.counter = 0
+        #self.counter = 0
 
         # Publish map lines
         self.map = utils.get_map_udg()
@@ -243,120 +240,37 @@ class driver(object):
 
         utils.publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
                      time=msg.header.stamp, ns=nss, color=(1,0,0), marker_id=1, thickness=0.05)
-        # ###################################################################
-        # ###### Compute stuff for obstacle avoidance - Daudt's method ######
-        # ###################################################################
-
-        # th_up = 2.5
-        # th_down = 0.7
-        # th_w = 2.5
-
-        # # prune points
-        # ang = ang[rng < msg.range_max]
-        # rng = rng[rng < msg.range_max]
-        # if rng.size < 1:
-        #     self.oa_v = 1
-        #     self.oa_w = 0
-        #     return
-
-        # # Linear velocity factor
-        # absolute = np.abs(ang)
-        # minimum = np.min(absolute)
-        # center_measurements_indices = np.where(absolute == minimum)
-        # c_ang = np.mean(absolute[center_measurements_indices])
-        # c_dist = np.mean(rng[center_measurements_indices])
-        # if c_ang >= 0.1 or c_dist >= th_up:
-        #     self.oa_v = 1
-        # elif c_dist <= th_down:
-        #     self.oa_v = 0
-        # else:
-        #     self.oa_v = (c_dist - th_down)/(th_up - th_down)
-
-        # # Angular velocity factor
-        # neg_ang = ang[ang < 0]
-        # if neg_ang.size < 1:
-        #     neg_mean = msg.range_max
-        # else:
-        #     # neg_cos = np.cos(neg_ang)
-        #     # neg_tot = np.sum(neg_cos)
-        #     neg_rng = rng[ang < 0]
-        #     # neg_mean = np.sum(neg_cos * neg_rng)/neg_tot
-
-        #     neg_mean = np.min(neg_rng)
-
-        # pos_ang = ang[ang > 0]
-        # if pos_ang.size < 1:
-        #     pos_mean = msg.range_max
-        # else:
-        #     # pos_cos = np.cos(pos_ang)
-        #     # pos_tot = np.sum(pos_cos)
-        #     pos_rng = rng[ang > 0]
-        #     # pos_mean = np.sum(pos_cos * pos_rng)/pos_tot
-
-        #     pos_mean = np.min(pos_rng)
-
-        # if neg_mean >= pos_mean:
-        #     # positive factor
-        #     if neg_mean >= th_w:
-        #         f = 0
-        #         # self.counter += 1
-        #         # if self.counter > 50:
-        #         self.oa_w *= 0.98
-        #     else:
-        #         # self.oa_w = (th_w - neg_mean)
-        #         self.counter = 0
-        #         f = -(th_w - neg_mean)
-        # else:
-        #     # negative factor
-        #     if pos_mean >= th_w:
-        #         f = 0
-        #         # self.counter += 1
-        #         # if self.counter > 50:
-        #         self.oa_w *= 0.98
-        #     else:
-        #         # self.oa_w = -(th_w - pos_mean)
-        #         self.counter = 0
-        #         f = (th_w - pos_mean)
-
-        # self.oa_w += 0.01 * f
-
-        # print(self.oa_w)
-
-
+       
         ###################################################################
         ##### Compute stuff for obstacle avoidance - Daudt's method 2 #####
         ###################################################################
 
+        th_up = 0.7
 
-        # th_up = 2.5
-        # th_down = 0.7
-        # th_w = 2.5
+        # prune points
+        ang = ang[rng < msg.range_max]
+        rng = rng[rng < msg.range_max]
+        if rng.size < 1:
+            self.oa_v = 1
+            self.oa_w *= 0.8
+            return
 
-        # # prune points
-        # ang = ang[rng < msg.range_max]
-        # rng = rng[rng < msg.range_max]
-        # if rng.size < 1:
-        #     self.oa_v = 1
-        #     self.oa_w *= 0.95
-        #     return
+        # Linear velocity factor
+        min_dist = np.min(rng)
 
-        # # Linear velocity factor
-        # min_dist = np.min(rng)
+        # Angular velocity factor
+        w = np.where(rng == min_dist)
+        angle = np.mean(ang[w])
 
-        # # Angular velocity factor
-        # w = np.where(rng == min_dist)
-        # angle = np.mean(ang[w])
+        if min_dist < th_up:
+            if angle <= 0:
+                self.oa_w = 1.0
+            else:
+                self.oa_w = -1.0
 
-        # if min_dist < th_up:
-        #     if angle <= 0:
-        #         self.oa_w = 0
-        #     else:
-        #         self.oa_w = 0
+        else:
+            self.oa_w *= 0.8
 
-        # else:
-        #     self.oa_w *= 0.95
-
-        # print(angle)
         
     def odom_callback(self, msg):
         '''
@@ -412,8 +326,6 @@ class driver(object):
         '''
         load_goals loads the goal (or goal list for the option al part) into
         the x y theta variables.
-        
-        TODO modify for the optional part
         '''
         
 
@@ -423,8 +335,6 @@ class driver(object):
         
         grid_map = np.array(imread(filepath))
         grid_map = grid_map[:,:,0]
-        # q_start = [70,80]
-        # q_goal = [615,707]
         
         q_start = [self.x_start, self.y_start] #[200,200]
         q_goal =  [x_goal, y_goal] #[200,350]
@@ -516,12 +426,13 @@ class driver(object):
         '''
         compute_velocity computes the velocity which will be published.
         
-        TODO implement!
         '''
 
         dx = self.x[self.active_goal] - self.position_x # distance in x between turtle and target
         dy = self.y[self.active_goal] - self.position_y # distance in y between turtle and target
         d = np.linalg.norm([dx,dy]) # total distance between turtle and target
+        epsilon = 0.0001
+
 
         if d > self.goal_th_xy/2: # Using threshold/2 to avoid entering and leaving goal radius
             theta_target = np.arctan2(dy,dx) # angle to target
@@ -535,16 +446,16 @@ class driver(object):
 
 
             # Calculate control signals
-            # linv = self.oa_v * (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**1)
-            # self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.3])
-
+            
+            # linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32)
+            # self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
             # angv = self.kp_w*dt + self.kd_w*dt_deriv
-            # self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv))) + self.oa_w
+            # self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
 
-            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32)
-            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
-            angv = self.kp_w*dt + self.kd_w*dt_deriv
-            self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
+            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32) * self.oa_v
+            self.vmsg.linear.x = np.min([linv/(np.sqrt(np.abs(linv)) + epsilon),0.5])
+            angv = self.kp_w*dt + self.kd_w*dt_deriv + self.oa_w
+            self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)) + epsilon)
 
 
         elif not self.has_arrived_ang():
