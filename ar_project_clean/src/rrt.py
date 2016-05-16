@@ -62,6 +62,9 @@ def smooth(in_map,path,delta):
 
 #=============================================================================
 def rrt(in_map,q_start,q_goal,k,delta_q,p):
+
+    print('RRT: Start')
+
     # Get map size
     [s1,s2] = in_map.shape
 
@@ -88,7 +91,7 @@ def rrt(in_map,q_start,q_goal,k,delta_q,p):
     last_added_vertex = 0
     
     
-    
+    print('RRT: Calculating trajectory')
     
     # RRT loop
     for i in range(k):
@@ -149,6 +152,8 @@ def rrt(in_map,q_start,q_goal,k,delta_q,p):
         path = np.vstack((path,vertices[last_added_to_path,:]))
     path = np.flipud(path)
     
+    print('RRT: Smoothing trajectory')
+
     # Smooth path
     path_smooth = smooth(in_map,path,5)    
 
