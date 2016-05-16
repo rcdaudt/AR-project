@@ -42,16 +42,16 @@ class driver(object):
         print('Driver constructor')
 
 
-        self.scale = 0.1
-        self.offset_x = 200
-        self.offset_y = 200
+        self.scale = 0.05
+        self.offset_x = 400
+        self.offset_y = 400
 
         #Initialize ros node
         rospy.init_node('turtlebot_driver')
         
         #Starting position: in pixels
-        self.x_start = rospy.get_param('cur_pos_x', 200)
-        self.y_start = rospy.get_param('cur_pos_y', 200)
+        self.x_start = rospy.get_param('cur_pos_x', self.offset_x)
+        self.y_start = rospy.get_param('cur_pos_y', self.offset_y)
         self.theta_start = rospy.get_param('cur_pos_theta', 0)
 
         #Initialize goals
@@ -122,7 +122,7 @@ class driver(object):
         self.counter = 0
 
         # Publish map lines
-        self.map = utils.get_map()
+        self.map = utils.get_map_udg()
         self.trajectory = np.zeros((0, 4))
 
         
@@ -249,84 +249,84 @@ class driver(object):
 
         utils.publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
                      time=msg.header.stamp, ns=nss, color=(1,0,0), marker_id=1, thickness=0.05)
-        ###################################################################
-        ###### Compute stuff for obstacle avoidance - Daudt's method ######
-        ###################################################################
+        # ###################################################################
+        # ###### Compute stuff for obstacle avoidance - Daudt's method ######
+        # ###################################################################
 
-        th_up = 2.5
-        th_down = 0.7
-        th_w = 2.5
+        # th_up = 2.5
+        # th_down = 0.7
+        # th_w = 2.5
 
-        # prune points
-        ang = ang[rng < msg.range_max]
-        rng = rng[rng < msg.range_max]
-        if rng.size < 1:
-            self.oa_v = 1
-            self.oa_w = 0
-            return
+        # # prune points
+        # ang = ang[rng < msg.range_max]
+        # rng = rng[rng < msg.range_max]
+        # if rng.size < 1:
+        #     self.oa_v = 1
+        #     self.oa_w = 0
+        #     return
 
-        # Linear velocity factor
-        absolute = np.abs(ang)
-        minimum = np.min(absolute)
-        center_measurements_indices = np.where(absolute == minimum)
-        c_ang = np.mean(absolute[center_measurements_indices])
-        c_dist = np.mean(rng[center_measurements_indices])
-        if c_ang >= 0.1 or c_dist >= th_up:
-            self.oa_v = 1
-        elif c_dist <= th_down:
-            self.oa_v = 0
-        else:
-            self.oa_v = (c_dist - th_down)/(th_up - th_down)
+        # # Linear velocity factor
+        # absolute = np.abs(ang)
+        # minimum = np.min(absolute)
+        # center_measurements_indices = np.where(absolute == minimum)
+        # c_ang = np.mean(absolute[center_measurements_indices])
+        # c_dist = np.mean(rng[center_measurements_indices])
+        # if c_ang >= 0.1 or c_dist >= th_up:
+        #     self.oa_v = 1
+        # elif c_dist <= th_down:
+        #     self.oa_v = 0
+        # else:
+        #     self.oa_v = (c_dist - th_down)/(th_up - th_down)
 
-        # Angular velocity factor
-        neg_ang = ang[ang < 0]
-        if neg_ang.size < 1:
-            neg_mean = msg.range_max
-        else:
-            # neg_cos = np.cos(neg_ang)
-            # neg_tot = np.sum(neg_cos)
-            neg_rng = rng[ang < 0]
-            # neg_mean = np.sum(neg_cos * neg_rng)/neg_tot
+        # # Angular velocity factor
+        # neg_ang = ang[ang < 0]
+        # if neg_ang.size < 1:
+        #     neg_mean = msg.range_max
+        # else:
+        #     # neg_cos = np.cos(neg_ang)
+        #     # neg_tot = np.sum(neg_cos)
+        #     neg_rng = rng[ang < 0]
+        #     # neg_mean = np.sum(neg_cos * neg_rng)/neg_tot
 
-            neg_mean = np.min(neg_rng)
+        #     neg_mean = np.min(neg_rng)
 
-        pos_ang = ang[ang > 0]
-        if pos_ang.size < 1:
-            pos_mean = msg.range_max
-        else:
-            # pos_cos = np.cos(pos_ang)
-            # pos_tot = np.sum(pos_cos)
-            pos_rng = rng[ang > 0]
-            # pos_mean = np.sum(pos_cos * pos_rng)/pos_tot
+        # pos_ang = ang[ang > 0]
+        # if pos_ang.size < 1:
+        #     pos_mean = msg.range_max
+        # else:
+        #     # pos_cos = np.cos(pos_ang)
+        #     # pos_tot = np.sum(pos_cos)
+        #     pos_rng = rng[ang > 0]
+        #     # pos_mean = np.sum(pos_cos * pos_rng)/pos_tot
 
-            pos_mean = np.min(pos_rng)
+        #     pos_mean = np.min(pos_rng)
 
-        if neg_mean >= pos_mean:
-            # positive factor
-            if neg_mean >= th_w:
-                f = 0
-                # self.counter += 1
-                # if self.counter > 50:
-                self.oa_w *= 0.98
-            else:
-                # self.oa_w = (th_w - neg_mean)
-                self.counter = 0
-                f = -(th_w - neg_mean)
-        else:
-            # negative factor
-            if pos_mean >= th_w:
-                f = 0
-                # self.counter += 1
-                # if self.counter > 50:
-                self.oa_w *= 0.98
-            else:
-                # self.oa_w = -(th_w - pos_mean)
-                self.counter = 0
-                f = (th_w - pos_mean)
+        # if neg_mean >= pos_mean:
+        #     # positive factor
+        #     if neg_mean >= th_w:
+        #         f = 0
+        #         # self.counter += 1
+        #         # if self.counter > 50:
+        #         self.oa_w *= 0.98
+        #     else:
+        #         # self.oa_w = (th_w - neg_mean)
+        #         self.counter = 0
+        #         f = -(th_w - neg_mean)
+        # else:
+        #     # negative factor
+        #     if pos_mean >= th_w:
+        #         f = 0
+        #         # self.counter += 1
+        #         # if self.counter > 50:
+        #         self.oa_w *= 0.98
+        #     else:
+        #         # self.oa_w = -(th_w - pos_mean)
+        #         self.counter = 0
+        #         f = (th_w - pos_mean)
 
-        self.oa_w += 0.01 * f
+        # self.oa_w += 0.01 * f
 
-        print(self.oa_w)
+        # print(self.oa_w)
 
 
         ###################################################################
@@ -532,12 +532,16 @@ class driver(object):
 
 
             # Calculate control signals
-            linv = self.oa_v * (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**1)
-            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.3])
+            # linv = self.oa_v * (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**1)
+            # self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.3])
 
+            # angv = self.kp_w*dt + self.kd_w*dt_deriv
+            # self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv))) + self.oa_w
+
+            linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32)
+            self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
             angv = self.kp_w*dt + self.kd_w*dt_deriv
-            self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv))) + self.oa_w
-
+            self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
 
 
         elif not self.has_arrived_ang():

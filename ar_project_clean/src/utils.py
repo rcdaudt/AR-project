@@ -108,6 +108,63 @@ def get_map(x=0, y=0, a=0):
 
     return np.dot(rotate, lines).T
 
+########################################################################
+
+def get_map_udg(x=0, y=0, a=0):
+    """
+    Retrieve the map for dataset3 with offsets [x y a] if necessary.
+
+    Lines defined as [x1 y1 x2 y2].
+
+    For the EKF lab use: x = 0.7841748 y = 0.313926 a = -0.03
+
+    This is the map for dataset1.bag
+
+    :param float x: initial x position of the robot in the map.
+    :param float y: initial y position of the robot in the map.
+    :param float a: initial orientation of the robot in the map.
+    :returns: the lines defined by rows [x1, y1, x2, y2].
+    :rtype: :py:obj:`numpy.ndarray`
+    """
+    lines = np.array([
+        [0, 0, 0, 40],
+        [0, 0, 40, 0],
+        [40, 0, 40, 40],
+        [0, 40, 40, 40],
+        # U
+        [7, 9, 13, 9],
+        [13, 9, 13, 15],
+        [13, 15, 7, 15],
+        # G
+        [16, 34, 16, 22],
+        [16, 22, 31, 22],
+        [31, 22, 31, 34],
+        [31, 34, 24, 34],
+        [24, 34, 24, 28],
+        #D
+        [34, 7, 22, 7],
+        [22, 7, 22, 15],
+        [22, 15, 24, 17],
+        [24, 17, 32, 17],
+        [32, 17, 34, 15],
+        [34, 15, 34, 11]
+        ]).T
+
+    lines[1, :] = -lines[1, :]
+    lines[3, :] = -lines[3, :]
+    dis = -20#-4.0 + 0.05
+    lines = lines * 1.0 + np.array([[dis, -dis, dis, -dis]]).T
+    # Transform to specified frame
+    lines -= np.array([[x, y, x, y]]).T
+    rot = np.array([[np.cos(a), -np.sin(a)],
+                    [np.sin(a), np.cos(a)]])
+    fl = np.array([[1, 0],[0, -1]])
+    rotate = np.vstack((np.hstack((rot, np.zeros((2, 2)))),
+                        np.hstack((np.zeros((2, 2)), rot))))
+    flip = np.vstack((np.hstack((fl, np.zeros((2, 2)))),
+                        np.hstack((np.zeros((2, 2)), fl))))
+
+    return np.dot(flip, np.dot(rotate, lines)).T
 
 ########################################################################
 

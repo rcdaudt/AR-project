@@ -12,10 +12,9 @@ from numpy.linalg import norm
 #=============================================================================
 def is_visible(in_map,q,q_new,delta=1):
     N = np.ceil(norm(q-q_new)/delta).astype(int)
-    
     x = np.array(np.floor(np.linspace(q[0],q_new[0],num=N))).astype(int)
     y = np.array(np.floor(np.linspace(q[1],q_new[1],num=N))).astype(int)
-    
+    print 'IS VISIBLE:', N
     vals = in_map[x,y]
     
     if any(vals):
