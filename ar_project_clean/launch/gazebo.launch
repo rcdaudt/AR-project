@@ -1,6 +1,7 @@
 <launch>
 	<!-- Read launch arguments -->
-	<arg name="world" default="$(find ar_project_clean)/worlds/test-world-1.sdf"/>
+	<!-- <arg name="world" default="$(find ar_project_clean)/worlds/test-world-1.sdf"/> -->
+	<arg name="world" default="$(find ar_project_clean)/worlds/udg-world.sdf"/>
 
 	<include file="$(find turtlebot_gazebo)/launch/turtlebot_world.launch">
 	  <arg name="world_file" value="$(arg world)"/>

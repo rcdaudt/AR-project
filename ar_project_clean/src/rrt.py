@@ -10,7 +10,7 @@ from numpy.random import rand
 from numpy.linalg import norm
 
 #=============================================================================
-def is_visible(in_map,q,q_new,delta=5):
+def is_visible(in_map,q,q_new,delta=1):
     N = np.ceil(norm(q-q_new)/delta).astype(int)
     
     x = np.array(np.floor(np.linspace(q[0],q_new[0],num=N))).astype(int)
@@ -132,6 +132,7 @@ def rrt(in_map,q_start,q_goal,k,delta_q,p):
                     added_goal = True
                     break
     # End of RRT loop -----------------------------------------------------
+    print 'FINISHED'
     
     # Clean vertices and edges arrays
     vertices = vertices[:last_added_vertex+1,:]
@@ -150,6 +151,6 @@ def rrt(in_map,q_start,q_goal,k,delta_q,p):
     
     # Smooth path
     path_smooth = smooth(in_map,path,5)    
-    
+
     # Return path
     return path_smooth

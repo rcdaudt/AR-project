@@ -20,7 +20,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 ###############################################################################
 def publish_lines(lines, pub, frame='world', ns='none', time=None,
-                  color=(1, 0, 0),marker_id=0):
+                  color=(1, 0, 0),marker_id=0, thickness=0.01):
     """
     Publish lines from an array of shape (N, 4) as a Marker message.
 
@@ -49,7 +49,7 @@ def publish_lines(lines, pub, frame='world', ns='none', time=None,
     msg.pose.orientation.y = 0.0
     msg.pose.orientation.z = 0.0
     msg.pose.orientation.w = 1.0
-    msg.scale.x = 0.01
+    msg.scale.x = thickness
     msg.scale.y = 0.0
     msg.scale.z = 0.0
     msg.color.r = color[0]
@@ -85,10 +85,15 @@ def get_map(x=0, y=0, a=0):
         [0, 0, 20, 0],
         [20, 0, 20, 20],
         [20, 20, 0, 20],
-        [13.5, 5, 13.5, 13.5],
-        [6.5, 5, 13.5, 5],
-        [6.25, 13.5, 13.5, 13.5],
-        [3, 2.5, 3, 17.5]]).T
+        # [13.5, 5, 13.5, 13.5],
+        # [6.5, 5, 13.5, 5],
+        # [6.25, 13.5, 13.5, 13.5],
+        # [3, 2.5, 3, 17.5]]).T
+        [14.25, 5.5, 14.25, 14],
+        [7.25, 5.5, 14.25, 5.5],
+        [7, 14, 14.25, 14],
+
+        [3.5, 2.5, 3.5, 17.5]]).T
 
     lines[1, :] = -lines[1, :]
     lines[3, :] = -lines[3, :]

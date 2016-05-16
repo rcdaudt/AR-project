@@ -41,6 +41,11 @@ class driver(object):
 
         print('Driver constructor')
 
+
+        self.scale = 0.1
+        self.offset_x = 200
+        self.offset_y = 200
+
         #Initialize ros node
         rospy.init_node('turtlebot_driver')
         
@@ -83,6 +88,7 @@ class driver(object):
         self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
         self.pub_line = rospy.Publisher("lines", Marker,queue_size=0)     
         self.pub_map = rospy.Publisher("linesekf", Marker, queue_size=2)
+        self.pub_traj = rospy.Publisher("trajectory", Marker, queue_size=2)
 
         #TODO define subscriber
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
@@ -112,6 +118,7 @@ class driver(object):
 
         # Publish map lines
         self.map = utils.get_map()
+        self.trajectory = np.zeros((0, 4))
 
         
     def print_goals(self):
@@ -234,8 +241,8 @@ class driver(object):
 
         self.i = self.i + 1
         nss = 'scan_line' + str(self.i)
-        publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
-                     time=msg.header.stamp, ns=nss, color=(1,0,0),marker_id=1)
+        utils.publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
+                     time=msg.header.stamp, ns=nss, color=(1,0,0), marker_id=1, thickness=0.05)
         
     def odom_callback(self, msg):
         '''
@@ -273,7 +280,9 @@ class driver(object):
         self.print_goal()
         while not rospy.is_shutdown():
             utils.publish_lines(self.map, self.pub_map, frame='world',
-                            ns='map', color=(0, 1, 0))
+                            ns='map', color=(25, 25, 25), thickness=0.2)
+            utils.publish_lines(self.trajectory, self.pub_traj, frame='world',
+                            ns='trajectory', color=(0, 0, 1), thickness=0.05)
             rospy.sleep(0.03)
         
     def load_goals(self):
@@ -288,11 +297,6 @@ class driver(object):
         filepath = rospy.get_param('file',0)
         x_goal = rospy.get_param('x', self.x_start)
         y_goal = rospy.get_param('y', self.y_start)
-
-        
-        scale = 0.05
-        offset_x = 200
-        offset_y = 200
         
         grid_map = np.array(imread(filepath))
         grid_map = grid_map[:,:,0]
@@ -319,8 +323,8 @@ class driver(object):
 
         # self.x = (path[:,1]-q_start[1])*scale
         # self.y = (path[:,0]-q_start[0])*scale
-        self.x = (path[:,1]-offset_y)*scale
-        self.y = (path[:,0]-offset_x)*scale
+        self.x = (path[:,1]-self.offset_y)*self.scale
+        self.y = (path[:,0]-self.offset_x)*self.scale
         self.theta = 0*self.x
         for i in np.arange(0,n-1):
             x1 = self.x[i]
@@ -328,14 +332,16 @@ class driver(object):
             x2 = self.x[i+1]
             y2 = self.y[i+1]
             self.theta[i] = self.angle_wrap(np.arctan2(y2-y1,x2-x1))
+            self.trajectory = np.vstack((self.trajectory, np.array([self.x[i], self.y[i], self.x[i+1], self.y[i+1]])));
+        
         self.theta[n-1] = self.theta[n-2]
+        
+        print 'Trajectory: ', self.trajectory
 
         # theta_0 = self.angle_wrap(np.arctan2(self.x[0]-self.position_x,self.y[0]-self.position_y))
         # self.x = np.hstack((self.position_x,self.x))
         # self.y = np.hstack((self.position_y,self.y))
         # self.theta = np.hstack((theta_0,self.theta))
-
-
 
         self.num_goals = self.x.size
         self.params_loaded = True

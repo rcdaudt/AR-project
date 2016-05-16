@@ -681,23 +681,7 @@ Visualization Manager:
             scan_line601: true
             scan_line602: true
             scan_line603: true
-            scan_line604: true
-            scan_line605: true
-            scan_line606: true
-            scan_line607: true
-            scan_line608: true
-            scan_line609: true
             scan_line61: true
-            scan_line610: true
-            scan_line611: true
-            scan_line612: true
-            scan_line613: true
-            scan_line614: true
-            scan_line615: true
-            scan_line616: true
-            scan_line617: true
-            scan_line618: true
-            scan_line619: true
             scan_line62: true
             scan_line63: true
             scan_line64: true
@@ -985,9 +969,17 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /trajectory
+      Name: Trajectory
+      Namespaces:
+        trajectory: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 187; 187; 187
     Fixed Frame: odom
     Frame Rate: 30
   Name: root
@@ -1017,11 +1009,11 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 23.9976
+      Scale: 25.2594
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0.3032
-      Y: 0.08386
+      X: -0.302532
+      Y: -0.216815
     Saved:
       - Angle: 0
         Class: rviz/TopDownOrtho
