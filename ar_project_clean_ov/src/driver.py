@@ -58,7 +58,8 @@ class driver(object):
         #TODO define subscriber
         self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
         self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
-
+        
+        
         #Some parameters for LaserScan information
         self.sensor_spacing = 5 
         self.sensor_max_range = 10
