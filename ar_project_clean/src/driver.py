@@ -245,7 +245,7 @@ class driver(object):
         ##### Compute stuff for obstacle avoidance - Daudt's method 2 #####
         ###################################################################
 
-        th_up = 0.7
+        th_up = 1.5
 
         # prune points
         ang = ang[rng < msg.range_max]
