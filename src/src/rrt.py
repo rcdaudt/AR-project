@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Apr 30 17:16:18 2016
-
-@author: daudt
 """
 
 import numpy as np

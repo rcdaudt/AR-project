@@ -10,22 +10,18 @@ import rospy
 # Other imoprts
 import math #math library
 import numpy as np #numpy library
-# from probabilistic_lib.functions import angle_wrap #Normalize angles between -pi and pi
-
-#TODO import the library to read csv
-# import csv
 
 from rrt import rrt
 from scipy.ndimage import imread
 from splitandmerge import splitandmerge
 import utils
 
-#TODO import the library to compute transformations
+#import the library to compute transformations
 from tf.transformations import euler_from_quaternion
 import tf
 
 #ROS messages
-#TODO import appropiate ROS messages
+#import appropiate ROS messages
 from geometry_msgs.msg import Twist # For
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
@@ -94,7 +90,7 @@ class driver(object):
         self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
         self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
 
-        #TODO define the velocity message
+        #define the velocity message
         self.vmsg = Twist()
 
         # Initialize robot's position (in meters)
@@ -346,16 +342,11 @@ class driver(object):
         delta_q = 10
         p = 0.3
 
-        #if grid_map[q_goal[0], q_goal[1]] == 0:
         path = rrt(grid_map,q_start,q_goal,k,delta_q,p)
-        #else:
-        #    path = np.ndarray([self.x_start, self.y_start])
 
         print 'Path: ',path
         n = path.shape[0]
 
-        # self.x = (path[:,1]-q_start[1])*scale
-        # self.y = (path[:,0]-q_start[0])*scale
         self.x = (path[:,1]-self.offset_y)*self.scale
         self.y = (path[:,0]-self.offset_x)*self.scale
         self.theta = 0*self.x
@@ -370,11 +361,6 @@ class driver(object):
         self.theta[n-1] = self.theta[n-2]
         
         print 'Trajectory: ', self.trajectory
-
-        # theta_0 = self.angle_wrap(np.arctan2(self.x[0]-self.position_x,self.y[0]-self.position_y))
-        # self.x = np.hstack((self.position_x,self.x))
-        # self.y = np.hstack((self.position_y,self.y))
-        # self.theta = np.hstack((theta_0,self.theta))
 
         self.num_goals = self.x.size
         self.params_loaded = True
@@ -446,12 +432,6 @@ class driver(object):
 
 
             # Calculate control signals
-            
-            # linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32)
-            # self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
-            # angv = self.kp_w*dt + self.kd_w*dt_deriv
-            # self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
-
             linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32) * self.oa_v
             self.vmsg.linear.x = np.min([linv/(np.sqrt(np.abs(linv)) + epsilon),0.5])
             angv = self.kp_w*dt + self.kd_w*dt_deriv + self.oa_w

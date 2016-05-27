@@ -1,9 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-'''
-@ Songyou Peng, May 4th
-'''
-
 
 import numpy as np
 import utils
@@ -11,8 +7,6 @@ import math
 
 #===============================================================================
 def splitandmerge(points, split_thres=0.1, inter_thres=0.3, min_points=6, dist_thres=0.12, ang_thres=np.deg2rad(10)):
-    # The dataset2.bag parameters areAft as follow
-    #def splitandmerge(points, split_thres=0.01, inter_thres=0.3, min_points=6, dist_thres=0.12, ang_thres=np.deg2rad(10)):    '''
     '''
     Takes an array of N points in shape (2, N) being the first row the x
     position and the second row the y position.
@@ -45,7 +39,7 @@ def split(points, split_thres, inter_thres, min_points, first_pt, last_pt):
         return None
     
     # Line defined as "a*x + b*y + c = 0"
-    # Calc (a, b, c) of the line (prelab question)
+    # Calc (a, b, c) of the line 
     x1 = points[0, first_pt]
     y1 = points[1, first_pt]
     x2 = points[0, last_pt]
@@ -55,7 +49,7 @@ def split(points, split_thres, inter_thres, min_points, first_pt, last_pt):
     b = x2 - x1
     c = x1 * y2 - x2 * y1
 
-    # Distances of points to line (prelab question)
+    # Distances of points to line
     ps_dis = abs(a * points[0,:] + b * points[1,:] + c) / math.sqrt(math.pow(a,2) + math.pow(b,2))#points set distance
     max_dis = np.amax(ps_dis) # Get the largest distance 
     max_ind = np.argmax(ps_dis) # The coordinate of the point having largest distance
@@ -65,9 +59,6 @@ def split(points, split_thres, inter_thres, min_points, first_pt, last_pt):
         # Check sublines
         prev = split(points[:,first_pt:max_ind], split_thres, inter_thres, min_points, 0, points[:,first_pt:max_ind].shape[1]-1)
         post = split(points[:,(max_ind + 1) : last_pt], split_thres, inter_thres, min_points, 0, points[:,max_ind + 1 : last_pt].shape[1]-1)
-        #prev = split(points[:,first_pt:max_ind-1], split_thres, inter_thres, min_points, 0, points[:,first_pt:max_ind-1].shape[1]-1)
-        #post = split(points[:,(max_ind + 1) : last_pt], split_thres, inter_thres, min_points, 0, points[:,max_ind + 1 : last_pt].shape[1]-1)
-       
        
         # Return results of sublines
         if prev is not None and post is not None:
@@ -84,13 +75,11 @@ def split(points, split_thres, inter_thres, min_points, first_pt, last_pt):
         # Optional check interpoint distance
         for i in range(first_pt, last_pt - 1):
             inter_dis = math.sqrt(math.pow(points[0,i] - points[0,i+1],2) + math.pow(points[1,i]-points[1,i+1],2))
-            #print inter_dis
             # Check interpoint distance threshold
             if inter_dis > inter_thres:
                 #Split line
                 prev = split(points[:,first_pt : i], split_thres, inter_thres, min_points,0, points[:, first_pt:i].shape[1]-1)
                 post = split(points[:,(i+1):last_pt], split_thres, inter_thres, min_points,0, points[:, (i+1):last_pt].shape[1]-1)
-                #print points[:, (i+1):last_pt].shape[1]-1
 
                 # Return results of sublines
                 if prev is not None and post is not None:
