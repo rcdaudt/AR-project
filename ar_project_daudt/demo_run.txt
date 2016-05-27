@@ -1,5 +1,0 @@
-roslaunch turtlebot_gazebo turtlebot_world.launch world_file:='/home/daudt/Documents/S2/AR/AR-project/worlds/test3.sdf'
-
-
-roslaunch ar_project driver.launch file:='/home/daudt/Documents/S2/AR/AR-project/maps/test-1m-20px.png'
-

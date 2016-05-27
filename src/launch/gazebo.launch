@@ -1,0 +1,13 @@
+<launch>
+	<!-- Read launch arguments -->
+	<!-- <arg name="world" default="$(find ar_project)/worlds/test-world-1.sdf"/> -->
+	<arg name="world" default="$(find ar_project)/worlds/udg-world.sdf"/>
+
+	<include file="$(find turtlebot_gazebo)/launch/turtlebot_world.launch">
+	  <arg name="world_file" value="$(arg world)"/>
+	</include>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find ar_project)/config/MyConfig.rviz" output="screen"/>
+
+</launch>

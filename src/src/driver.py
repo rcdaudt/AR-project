@@ -4,7 +4,7 @@ import os
 
 # ROS general imports
 import roslib
-roslib.load_manifest('lab1_turtlebot')
+roslib.load_manifest('ar_project')
 import rospy
 
 # Other imoprts
@@ -17,15 +17,19 @@ import numpy as np #numpy library
 
 from rrt import rrt
 from scipy.ndimage import imread
+from splitandmerge import splitandmerge
+import utils
 
 #TODO import the library to compute transformations
 from tf.transformations import euler_from_quaternion
+import tf
 
 #ROS messages
 #TODO import appropiate ROS messages
 from geometry_msgs.msg import Twist # For
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
+from visualization_msgs.msg import Marker
 
 class driver(object):
     
@@ -36,9 +40,19 @@ class driver(object):
 
         print('Driver constructor')
 
+
+        self.scale = 0.05
+        self.offset_x = 400
+        self.offset_y = 400
+
         #Initialize ros node
-        rospy.init_node('turtlebot_driver')        
+        rospy.init_node('turtlebot_driver')
         
+        #Starting position: in pixels
+        self.x_start = rospy.get_param('cur_pos_x', self.offset_x)
+        self.y_start = rospy.get_param('cur_pos_y', self.offset_y)
+        self.theta_start = rospy.get_param('cur_pos_theta', 0)
+
         #Initialize goals
         self.x = np.array([])
         self.y = np.array([])
@@ -54,26 +68,39 @@ class driver(object):
 
         #Initialize number of goals
         self.num_goals = 1
-        
-        #TODO define subscriber
-        self.sub = rospy.Subscriber("/odom", Odometry, self.callback)
-        self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
-        
-        
+
+        #Has the goal been loaded?
+        self.params_loaded = False
+
+        # For rviz plotting lines
+        self.tfBroad = tf.TransformBroadcaster()
+        self.i = 0 
+
+       
+
         #Some parameters for LaserScan information
         self.sensor_spacing = 5 
         self.sensor_max_range = 10
         
-        #TODO define publisher        
+        # Define publisher        
         self.pub = rospy.Publisher("/cmd_vel_mux/input/teleop", Twist, queue_size=100)
+        self.pub_line = rospy.Publisher("lines", Marker,queue_size=0)     
+        self.pub_map = rospy.Publisher("linesekf", Marker, queue_size=2)
+        self.pub_traj = rospy.Publisher("trajectory", Marker, queue_size=2)
+
+        # Define subscriber
+        ##################################################################
         
+        self.sub_sensor = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
+        self.sub_odom = rospy.Subscriber("odom", Odometry, self.odom_callback)
+
         #TODO define the velocity message
         self.vmsg = Twist()
 
-        # # Initialize robot's position
-        # self.position_x = 0
-        # self.position_y = 0
-        # self.position_theta = 0
+        # Initialize robot's position (in meters)
+        self.position_x = rospy.get_param('cur_pos_world_x', 0)
+        self.position_y = rospy.get_param('cur_pos_world_y', 0)
+        self.position_theta = rospy.get_param('cur_pos_world_theta', 0)
 
         #Controller parameters
         self.kp_v = 0.1
@@ -85,17 +112,17 @@ class driver(object):
         #Controller variables
         self.d_prev = 0
         self.dt_prev = 0
-        # self.dt_acc = 0
-        # self.lp = np.zeros(100)
-
+        
         # Obstacle avoidance factors
         self.oa_v = 1
         self.oa_w = 0
+        #self.counter = 0
 
-        #Has the goal been loaded?
-        self.params_loaded = False
-        # self.load_goals() 
+        # Publish map lines
+        self.map = utils.get_map_udg()
+        self.trajectory = np.zeros((0, 4))
 
+        
     def print_goals(self):
         '''
         print_goals prints the list of goals
@@ -174,18 +201,11 @@ class driver(object):
         '''
         self.pub.publish(self.vmsg)
         
-    def callback(self,msg):
+    #def callback(self,msg):
         '''
         callback reads the actuall position of the robot, computes the 
         appropiate velocity, publishes it and check if the goal is reached
         '''
-        if self.params_loaded == False:
-            return
-        self.read_position(msg)
-        self.compute_velocity()
-        self.publish()
-        self.check_goal()
-
 
     def scan_callback(self, msg):
 
@@ -210,102 +230,22 @@ class driver(object):
         points = points[:, rng < msg.range_max]
         
         
-        # # Split & Merge aLgorithm to get the line features
-        # lines = splitandmerge(points)
+        # Split & Merge aLgorithm to get the line features
+        lines = splitandmerge(points)
 
-        # #print lines
+        #print lines
 
-        # self.i = self.i + 1
-        # nss = 'scan_line' + str(self.i)
-        # publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
-        #              time=msg.header.stamp, ns=nss, color=(1,0,0),marker_id=1)
+        self.i = self.i + 1
+        nss = 'scan_line' + str(self.i)
 
-        ###################################################################
-        ###### Compute stuff for obstacle avoidance - Daudt's method ######
-        ###################################################################
-
-        # th_up = 2.5
-        # th_down = 0.7
-        # th_w = 2.5
-
-        # # prune points
-        # ang = ang[rng < msg.range_max]
-        # rng = rng[rng < msg.range_max]
-        # if rng.size < 1:
-        #     self.oa_v = 1
-        #     self.oa_w = 0
-        #     return
-
-        # # Linear velocity factor
-        # absolute = np.abs(ang)
-        # minimum = np.min(absolute)
-        # center_measurements_indices = np.where(absolute == minimum)
-        # c_ang = np.mean(absolute[center_measurements_indices])
-        # c_dist = np.mean(rng[center_measurements_indices])
-        # if c_ang >= 0.1 or c_dist >= th_up:
-        #     self.oa_v = 1
-        # elif c_dist <= th_down:
-        #     self.oa_v = 0
-        # else:
-        #     self.oa_v = (c_dist - th_down)/(th_up - th_down)
-
-        # # Angular velocity factor
-        # neg_ang = ang[ang < 0]
-        # if neg_ang.size < 1:
-        #     neg_mean = msg.range_max
-        # else:
-        #     # neg_cos = np.cos(neg_ang)
-        #     # neg_tot = np.sum(neg_cos)
-        #     neg_rng = rng[ang < 0]
-        #     # neg_mean = np.sum(neg_cos * neg_rng)/neg_tot
-
-        #     neg_mean = np.min(neg_rng)
-
-        # pos_ang = ang[ang > 0]
-        # if pos_ang.size < 1:
-        #     pos_mean = msg.range_max
-        # else:
-        #     # pos_cos = np.cos(pos_ang)
-        #     # pos_tot = np.sum(pos_cos)
-        #     pos_rng = rng[ang > 0]
-        #     # pos_mean = np.sum(pos_cos * pos_rng)/pos_tot
-
-        #     pos_mean = np.min(pos_rng)
-
-        # if neg_mean >= pos_mean:
-        #     # positive factor
-        #     if neg_mean >= th_w:
-        #         f = 0
-        #         # self.counter += 1
-        #         # if self.counter > 50:
-        #         self.oa_w *= 0.98
-        #     else:
-        #         # self.oa_w = (th_w - neg_mean)
-        #         self.counter = 0
-        #         f = -(th_w - neg_mean)
-        # else:
-        #     # negative factor
-        #     if pos_mean >= th_w:
-        #         f = 0
-        #         # self.counter += 1
-        #         # if self.counter > 50:
-        #         self.oa_w *= 0.98
-        #     else:
-        #         # self.oa_w = -(th_w - pos_mean)
-        #         self.counter = 0
-        #         f = (th_w - pos_mean)
-
-        # self.oa_w += 0.01 * f
-
-        # print(self.oa_w)
-
-
+        utils.publish_lines(lines, self.pub_line, frame=msg.header.frame_id,
+                     time=msg.header.stamp, ns=nss, color=(1,0,0), marker_id=1, thickness=0.05)
+       
         ###################################################################
         ##### Compute stuff for obstacle avoidance - Daudt's method 2 #####
         ###################################################################
 
-
-        th_up = 0.7
+        th_up = 1.5
 
         # prune points
         ang = ang[rng < msg.range_max]
@@ -331,8 +271,44 @@ class driver(object):
         else:
             self.oa_w *= 0.8
 
-        # print(angle)
         
+    def odom_callback(self, msg):
+        '''
+        Publishes a tf based on the odometry of the robot.
+        '''
+        # Translation
+
+        if self.params_loaded == False:
+            return
+        self.read_position(msg)
+        self.compute_velocity()
+        self.publish()
+        self.check_goal()
+
+
+        trans = (msg.pose.pose.position.x, 
+                 msg.pose.pose.position.y, 
+                 msg.pose.pose.position.z)
+        
+        # Rotation
+        rot = (msg.pose.pose.orientation.x,
+               msg.pose.pose.orientation.y,
+               msg.pose.pose.orientation.z,
+               msg.pose.pose.orientation.w)
+        
+        # Publish transform
+        self.tfBroad.sendTransform(translation = trans,
+                                   rotation = rot, 
+                                   time = msg.header.stamp,
+                                   parent = '/world',
+                                   child = '/base_footprint')
+
+        self.tfBroad.sendTransform(translation = (0,0,0),
+                                   rotation = tf.transformations.quaternion_from_euler(0,0,0
+                                    ), 
+                                   time = msg.header.stamp,
+                                   child = '/odom',
+                                   parent = '/world')
     def drive(self):
         '''
         drive is a neede function for the ros to run untill somebody stops
@@ -340,38 +316,48 @@ class driver(object):
         '''
         self.print_goal()
         while not rospy.is_shutdown():
+            utils.publish_lines(self.map, self.pub_map, frame='world',
+                            ns='map', color=(25, 25, 25), thickness=0.2)
+            utils.publish_lines(self.trajectory, self.pub_traj, frame='world',
+                            ns='trajectory', color=(0, 0, 1), thickness=0.05)
             rospy.sleep(0.03)
         
     def load_goals(self):
         '''
         load_goals loads the goal (or goal list for the option al part) into
         the x y theta variables.
-        
-        TODO modify for the optional part
         '''
         
 
         filepath = rospy.get_param('file',0)
-
-
-    
+        x_goal = rospy.get_param('x', self.x_start)
+        y_goal = rospy.get_param('y', self.y_start)
+        
         grid_map = np.array(imread(filepath))
         grid_map = grid_map[:,:,0]
-        # q_start = [70,80]
-        # q_goal = [615,707]
-        q_start = [200,200]
-        q_goal = [200,350]
+        
+        q_start = [self.x_start, self.y_start] #[200,200]
+        q_goal =  [x_goal, y_goal] #[200,350]
+        
+        print q_start
+        print q_goal
+        
         k = 10000
         delta_q = 10
         p = 0.3
 
+        #if grid_map[q_goal[0], q_goal[1]] == 0:
         path = rrt(grid_map,q_start,q_goal,k,delta_q,p)
+        #else:
+        #    path = np.ndarray([self.x_start, self.y_start])
 
-        scale = 0.05
+        print 'Path: ',path
         n = path.shape[0]
 
-        self.x = (path[:,1]-q_start[1])*scale
-        self.y = (path[:,0]-q_start[0])*scale
+        # self.x = (path[:,1]-q_start[1])*scale
+        # self.y = (path[:,0]-q_start[0])*scale
+        self.x = (path[:,1]-self.offset_y)*self.scale
+        self.y = (path[:,0]-self.offset_x)*self.scale
         self.theta = 0*self.x
         for i in np.arange(0,n-1):
             x1 = self.x[i]
@@ -379,17 +365,20 @@ class driver(object):
             x2 = self.x[i+1]
             y2 = self.y[i+1]
             self.theta[i] = self.angle_wrap(np.arctan2(y2-y1,x2-x1))
+            self.trajectory = np.vstack((self.trajectory, np.array([self.x[i], self.y[i], self.x[i+1], self.y[i+1]])));
+        
         self.theta[n-1] = self.theta[n-2]
+        
+        print 'Trajectory: ', self.trajectory
 
         # theta_0 = self.angle_wrap(np.arctan2(self.x[0]-self.position_x,self.y[0]-self.position_y))
         # self.x = np.hstack((self.position_x,self.x))
         # self.y = np.hstack((self.position_y,self.y))
         # self.theta = np.hstack((theta_0,self.theta))
 
-
-
         self.num_goals = self.x.size
         self.params_loaded = True
+        self.active_goal = 1
         self.print_goals()
         
     def next_goal(self):
@@ -402,6 +391,13 @@ class driver(object):
         print('Loading next goal')
         self.active_goal = self.active_goal + 1
         if self.active_goal >= self.num_goals:
+            # save the robot's last position
+            rospy.set_param('cur_pos_x', rospy.get_param('x', self.x_start))
+            rospy.set_param('cur_pos_y', rospy.get_param('y', self.y_start))
+            rospy.set_param('cur_pos_theta', rospy.get_param('theta', self.theta_start))
+            rospy.set_param('cur_pos_world_x', self.position_x)
+            rospy.set_param('cur_pos_world_y', self.position_y)
+            rospy.set_param('cur_pos_world_theta', self.position_theta)
             rospy.signal_shutdown('Final goal reached!')
             self.active_goal = self.active_goal - 1 # Just in case
         self.print_goal()
@@ -430,16 +426,15 @@ class driver(object):
         '''
         compute_velocity computes the velocity which will be published.
         
-        TODO implement!
         '''
 
-        # print(self.x[self.active_goal])
         dx = self.x[self.active_goal] - self.position_x # distance in x between turtle and target
         dy = self.y[self.active_goal] - self.position_y # distance in y between turtle and target
         d = np.linalg.norm([dx,dy]) # total distance between turtle and target
         epsilon = 0.0001
 
-        if d > self.goal_th_xy/2:
+
+        if d > self.goal_th_xy/2: # Using threshold/2 to avoid entering and leaving goal radius
             theta_target = np.arctan2(dy,dx) # angle to target
             dt = self.angle_wrap(theta_target - self.position_theta) # angle difference
 
@@ -449,19 +444,19 @@ class driver(object):
             dt_deriv = dt - self.dt_prev
             self.dt_prev = dt
 
-            # For integral controller
-            # self.dt_acc += dt
 
             # Calculate control signals
+            
+            # linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32)
+            # self.vmsg.linear.x = np.min([linv/np.sqrt(np.abs(linv)),0.5])
+            # angv = self.kp_w*dt + self.kd_w*dt_deriv
+            # self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)))
+
             linv = (self.kp_v*d + self.kd_v*d_deriv)*(np.cos(dt/2)**32) * self.oa_v
             self.vmsg.linear.x = np.min([linv/(np.sqrt(np.abs(linv)) + epsilon),0.5])
-            # self.vmsg.linear.y = self.vmsg.linear.x
-            # self.vmsg.linear.z = self.vmsg.linear.x
             angv = self.kp_w*dt + self.kd_w*dt_deriv + self.oa_w
             self.vmsg.angular.z = angv/(np.sqrt(np.abs(angv)) + epsilon)
 
-            # print(str([self.position_theta,theta_target,dx,dy]))
-            # print(str([linv,angv]))
 
         elif not self.has_arrived_ang():
             dt = self.angle_wrap(self.theta[self.active_goal] - self.position_theta) # angle difference
@@ -474,8 +469,6 @@ class driver(object):
             self.vmsg.linear.x = 0
             angv = self.kp_w*dt + self.kd_w*dt_deriv
             self.vmsg.angular.z = angv/np.sqrt(np.abs(angv))
-
-        # print(str([self.vmsg.linear.x,self.vmsg.angular.z]))
 
 
     def angle_wrap(self,ang):
