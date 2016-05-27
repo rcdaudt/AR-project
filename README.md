@@ -4,13 +4,13 @@
 This is a final project in Autonomous Robots class (VIBOT 2nd semester, University of Girona) done by Kaisar Kushibar(k.kushibar@gmail.com), Rodrigo Daudt (rcdaudt@gmail.com) and Songyou Peng (psy920710@gmail.com). 
 
 ### Demo
-The algorithm in action is shown [here].
+The demonstration of the algorithm can be seen [here].
 
 ### Requirements
-*ROS Indigo
-*Gazebo
-*RViz
-*Python 2.7
+* ROS Indigo
+* Gazebo
+* RViz
+* Python 2.7
 
 Create a catkin workspace and pull the code into the workspace src folder
 
