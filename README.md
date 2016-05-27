@@ -1,8 +1,3 @@
-# AR-project
-put AR-project in your catkin_ws workspace.
-Probably we'll have dependencies:
-functions.py of probabilistic_basics
-split__and_merge node
+This is a final project in Autonomous Robots class (VIBOT 2nd semester, University of Girona) done by Kaisar Kushibar(k.kushibar@gmail.com), Rodrigo Daudt (rcdaudt@gmail.com) and Songyou Peng (psy920710@gmail.com).
 
-## Launch:
-roslaunch ar_project main.launch
+Demo: https://www.youtube.com/watch?v=5PaKWS52CIM
