@@ -1,15 +1,27 @@
 
 # Autonomous Robots Final Project
 
-This is a final project in Autonomous Robots class (VIBOT 2nd semester, University of Girona) done by Kaisar Kushibar(k.kushibar@gmail.com), Rodrigo Daudt (rcdaudt@gmail.com) and Songyou Peng (psy920710@gmail.com). The demo can be found [here].
+This is a final project in Autonomous Robots class (VIBOT 2nd semester, University of Girona) done by Kaisar Kushibar(k.kushibar@gmail.com), Rodrigo Daudt (rcdaudt@gmail.com) and Songyou Peng (psy920710@gmail.com). 
+
+### Demo
+The algorithm in action is shown [here].
 
 ### Requirements
-ROS Indigo, Gazebo, RViz, Python 2.7
+*ROS Indigo
+*Gazebo
+*RViz
+*Python 2.7
 
 Create a catkin workspace and pull the code into the workspace src folder
 
 ### How to Run
+```sh
+$ roslaunch ar_project gazebo.launch
+$ roslaunch ar_project driver.launch x:=<x-coord> y:=<y-coord>
+```
+the first line launches the gazebo simulator and rviz visualization tool. The arguments <x-coord>, <y-coord> are in pixels w.r.t world coordinate system.
 
+example
 ```sh
 $ roslaunch ar_project gazebo.launch
 $ roslaunch ar_project driver.launch x:=600 y:=550
