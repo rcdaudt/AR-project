@@ -19,9 +19,9 @@ Create a catkin workspace and pull the code into the workspace src folder
 $ roslaunch ar_project gazebo.launch
 $ roslaunch ar_project driver.launch x:=<x-coord> y:=<y-coord>
 ```
-the first line launches the gazebo simulator and rviz visualization tool. The arguments \<x-coord\>, \<y-coord\> are in pixels w.r.t world coordinate system.
+The first line launches the gazebo simulator and rviz visualization tool. The arguments \<x-coord\>, \<y-coord\> are in pixels w.r.t world coordinate system.
 
-example
+Example
 ```sh
 $ roslaunch ar_project gazebo.launch
 $ roslaunch ar_project driver.launch x:=600 y:=550
