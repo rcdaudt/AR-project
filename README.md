@@ -12,7 +12,7 @@ The demonstration of the algorithm can be seen [here].
 * RViz
 * Python 2.7
 
-Create a catkin workspace and pull the code into the workspace src folder
+Create a catkin workspace and pull the code into the workspace src folder.
 
 ### How to Run
 ```sh
@@ -26,5 +26,7 @@ Example
 $ roslaunch ar_project gazebo.launch
 $ roslaunch ar_project driver.launch x:=600 y:=550
 ```
+
+
 
  [here]: <https://www.youtube.com/watch?v=5PaKWS52CIM>
