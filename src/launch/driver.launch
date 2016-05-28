@@ -4,8 +4,8 @@
   <arg name="x" default="0"/>
   <arg name="y" default="0"/>
   <arg name="theta" default="0"/>
-  <!-- <arg name="file" default="$(find ar_project)/maps/test1-1m-20px.png"/> -->
-  <arg name="file" default="$(find ar_project)/maps/udg.png"/>
+  <arg name="file" default="$(find ar_project)/maps/test1-1m-20px.png"/> 
+  <!-- <arg name="file" default="$(find ar_project)/maps/udg.png"/> -->
 
   <!-- Set the arguments to parameters -->
   <param name="x" value="$(arg x)"/>

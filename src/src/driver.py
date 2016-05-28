@@ -38,8 +38,8 @@ class driver(object):
 
 
         self.scale = 0.05
-        self.offset_x = 400
-        self.offset_y = 400
+        self.offset_x = 200 # 400
+        self.offset_y = 200 # 400
 
         #Initialize ros node
         rospy.init_node('turtlebot_driver')
@@ -115,7 +115,7 @@ class driver(object):
         #self.counter = 0
 
         # Publish map lines
-        self.map = utils.get_map_udg()
+        self.map = utils.get_map() # get_map_udg()
         self.trajectory = np.zeros((0, 4))
 
         
