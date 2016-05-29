@@ -1,9 +1,11 @@
-$ roslaunch ar_project_clean gazebo.launch
-$ roslaunch ar_project_clean driver.launch x:=200 y:=350
+For the 400*400 small map, an example in terminal:
 
-# coordinates are given in image pixels
-# when the robot reaches the goal,
-# you can run driver.launch with different coordinates without turning gazebo off
-# e.g.:
+$ roslaunch ar_project gazebo.launch
+$ roslaunch ar_project driver.launch x:=200 y:=350
 
-$ roslaunch ar_project_clean driver.launch x:=200 y:=200
+Note: coordinates are given in image pixels.
+
+When the robot reaches the goal, you can run driver.launch with different coordinates without turning gazebo and rviz off.
+
+e.g.
+$ roslaunch ar_project driver.launch x:=200 y:=200
