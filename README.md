@@ -21,10 +21,10 @@ $ roslaunch ar_project driver.launch x:=<x-coord> y:=<y-coord>
 ```
 The first line launches the Gazebo simulator and RViz visualization tool. The arguments \<x-coord\>, \<y-coord\> are the goal point in pixels w.r.t world coordinate system.
 
-Example
+Example (for the small 400*400 map)
 ```sh
 $ roslaunch ar_project gazebo.launch
-$ roslaunch ar_project driver.launch x:=600 y:=550
+$ roslaunch ar_project driver.launch x:=200 y:=350
 ```
 
 
